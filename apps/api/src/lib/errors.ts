@@ -39,14 +39,16 @@ export function fromPostgrestError(error: PostgrestErrorLike): AppError {
   return new AppError(500, "INTERNAL_ERROR", "Error interno del servidor");
 }
 
-type QueryResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: PostgrestErrorLike };
+type AnyQueryResult = { data: unknown; error: PostgrestErrorLike | null };
 
-/** Devuelve `data` o lanza el AppError correspondiente si la consulta falló. */
-export function unwrap<T>(result: QueryResult<T>): T {
+/**
+ * Devuelve `data` o lanza el AppError correspondiente si la consulta falló.
+ * El tipo de retorno se extrae de la rama exitosa (`error: null`) de la unión que
+ * devuelve supabase-js, así `data` conserva su tipo exacto (p. ej. `Row | null` en maybeSingle).
+ */
+export function unwrap<R extends AnyQueryResult>(result: R): Extract<R, { error: null }>["data"] {
   if (result.error) {
     throw fromPostgrestError(result.error);
   }
-  return result.data;
+  return result.data as Extract<R, { error: null }>["data"];
 }

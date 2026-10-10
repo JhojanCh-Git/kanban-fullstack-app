@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { createBoardSchema, updateBoardSchema, uuidSchema } from "@kanban/shared";
+import { createBoardSchema, createColumnSchema, updateBoardSchema, uuidSchema } from "@kanban/shared";
 import { z } from "zod";
 import { getAuth } from "../../lib/auth-context.js";
 import { parseWith } from "../../lib/validate.js";
+import { createColumn } from "../columns/columns.service.js";
 import {
   createBoard,
   deleteBoard,
@@ -38,6 +39,14 @@ export function boardsRouter(): Router {
     const { id } = parseWith(boardParamsSchema, req.params);
     const input = parseWith(updateBoardSchema, req.body);
     res.json(await updateBoard(db, id, input));
+  });
+
+  // POST /boards/:id/columns -> agrega una columna al final del tablero
+  router.post("/:id/columns", async (req, res) => {
+    const { db } = getAuth(req);
+    const { id } = parseWith(boardParamsSchema, req.params);
+    const input = parseWith(createColumnSchema, req.body);
+    res.status(201).json(await createColumn(db, id, input));
   });
 
   router.delete("/:id", async (req, res) => {

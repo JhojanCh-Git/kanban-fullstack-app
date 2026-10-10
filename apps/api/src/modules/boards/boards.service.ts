@@ -5,6 +5,7 @@ import type {
   Database,
   UpdateBoardInput,
 } from "@kanban/shared";
+import { forbiddenOrNotFound } from "../../lib/access.js";
 import { AppError, unwrap } from "../../lib/errors.js";
 import {
   toBoard,
@@ -18,17 +19,13 @@ import type { UserClient } from "../../lib/supabase.js";
 
 type BoardUpdate = Database["public"]["Tables"]["boards"]["Update"];
 
-/**
- * Con RLS, "no existe" y "no tienes acceso" se ven igual (0 filas).
- * Tras un UPDATE/DELETE vacío distinguimos: si el tablero es visible para el
- * usuario pero no se pudo modificar, es 403; si no es visible, es 404.
- */
-async function forbiddenOrNotFound(db: UserClient, boardId: string): Promise<AppError> {
-  const { data } = await db.from("boards").select("id").eq("id", boardId).maybeSingle();
-  return data
-    ? new AppError(403, "FORBIDDEN", "No tienes permiso para modificar este tablero")
-    : new AppError(404, "NOT_FOUND", "Tablero no encontrado");
-}
+const BOARD_MESSAGES = {
+  forbidden: "No tienes permiso para modificar este tablero",
+  notFound: "Tablero no encontrado",
+};
+
+const visibleBoard = (db: UserClient, id: string) =>
+  db.from("boards").select("id").eq("id", id).maybeSingle();
 
 export async function listBoards(db: UserClient): Promise<Board[]> {
   const rows = unwrap(
@@ -104,7 +101,7 @@ export async function updateBoard(
     await db.from("boards").update(patch).eq("id", boardId).select("*").maybeSingle(),
   );
   if (!row) {
-    throw await forbiddenOrNotFound(db, boardId);
+    throw await forbiddenOrNotFound(visibleBoard(db, boardId), BOARD_MESSAGES);
   }
   return toBoard(row);
 }
@@ -112,6 +109,6 @@ export async function updateBoard(
 export async function deleteBoard(db: UserClient, boardId: string): Promise<void> {
   const deleted = unwrap(await db.from("boards").delete().eq("id", boardId).select("id"));
   if (deleted.length === 0) {
-    throw await forbiddenOrNotFound(db, boardId);
+    throw await forbiddenOrNotFound(visibleBoard(db, boardId), BOARD_MESSAGES);
   }
 }
