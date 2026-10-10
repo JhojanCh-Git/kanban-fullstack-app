@@ -6,7 +6,9 @@ import { authenticate } from "./middleware/authenticate.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 import { boardsRouter } from "./modules/boards/boards.routes.js";
 import { columnsRouter } from "./modules/columns/columns.routes.js";
+import { labelsRouter } from "./modules/labels/labels.routes.js";
 import { meRouter } from "./modules/me/me.routes.js";
+import { subtasksRouter } from "./modules/subtasks/subtasks.routes.js";
 import { tasksRouter } from "./modules/tasks/tasks.routes.js";
 
 export interface AppDeps {
@@ -33,6 +35,8 @@ export function createApp({ createUserClient, corsOrigins }: AppDeps): Express {
   api.use("/boards", boardsRouter());
   api.use("/columns", columnsRouter());
   api.use("/tasks", tasksRouter());
+  api.use("/subtasks", subtasksRouter());
+  api.use("/labels", labelsRouter());
   app.use("/api/v1", api);
 
   app.use(notFound);

@@ -251,6 +251,12 @@ class MemoryQuery implements PromiseLike<Result> {
     if (this.op === "update") {
       if (this.db.readOnly) return this.shape([]);
       const targets = rows.filter((row) => this.matches(row));
+      if (this.table === "labels" && this.payload.name !== undefined) {
+        for (const row of targets) {
+          const clash = rows.some((l) => l !== row && l.board_id === row.board_id && l.name === this.payload.name);
+          if (clash) return { data: null, error: { code: "23505", message: "duplicate label name" } };
+        }
+      }
       for (const row of targets) {
         Object.assign(row, this.payload);
         if (this.table === "tasks") row.updated_at = now;
@@ -286,6 +292,17 @@ class MemoryQuery implements PromiseLike<Result> {
     }
     if (this.table === "columns" && !t.boards.some((b) => b.id === row.board_id)) {
       return { code: "23503", message: "board not found" };
+    }
+    if (this.table === "subtasks") {
+      row.is_completed ??= false;
+      if (!t.tasks.some((x) => x.id === row.task_id)) return { code: "23503", message: "task not found" };
+    }
+    if (this.table === "labels") {
+      row.color ??= "#64748b";
+      if (!t.boards.some((b) => b.id === row.board_id)) return { code: "23503", message: "board not found" };
+      if (t.labels.some((l) => l.board_id === row.board_id && l.name === row.name)) {
+        return { code: "23505", message: "duplicate label name" }; // UNIQUE (board_id, name)
+      }
     }
     if (this.table === "task_labels") {
       const task = t.tasks.find((x) => x.id === row.task_id);

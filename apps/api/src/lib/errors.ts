@@ -21,7 +21,7 @@ export interface PostgrestErrorLike {
 const POSTGRES_ERRORS: Record<string, { status: number; code: string; message: string }> = {
   "42501": { status: 403, code: "FORBIDDEN", message: "No tienes permiso para esta acción" },
   "23503": { status: 409, code: "CONFLICT", message: "La operación referencia un recurso inexistente o en uso" },
-  "23505": { status: 409, code: "CONFLICT", message: "Ya existe un recurso con esos datos" },
+  "23505": { status: 409, code: "DUPLICATE", message: "Ya existe un recurso con esos datos" },
   "23514": { status: 422, code: "CONSTRAINT_VIOLATION", message: "Los datos no cumplen las reglas del sistema" },
   "23502": { status: 400, code: "VALIDATION_ERROR", message: "Falta un dato obligatorio" },
   "22P02": { status: 400, code: "VALIDATION_ERROR", message: "Formato de dato inválido" },
