@@ -1,0 +1,51 @@
+import { Router } from "express";
+import { createBoardSchema, updateBoardSchema, uuidSchema } from "@kanban/shared";
+import { z } from "zod";
+import { getAuth } from "../../lib/auth-context.js";
+import { parseWith } from "../../lib/validate.js";
+import {
+  createBoard,
+  deleteBoard,
+  getBoardDetail,
+  listBoards,
+  updateBoard,
+} from "./boards.service.js";
+
+const boardParamsSchema = z.object({ id: uuidSchema });
+
+export function boardsRouter(): Router {
+  const router = Router();
+
+  router.get("/", async (req, res) => {
+    const { db } = getAuth(req);
+    res.json(await listBoards(db));
+  });
+
+  router.post("/", async (req, res) => {
+    const { db } = getAuth(req);
+    const input = parseWith(createBoardSchema, req.body);
+    res.status(201).json(await createBoard(db, input));
+  });
+
+  router.get("/:id", async (req, res) => {
+    const { db } = getAuth(req);
+    const { id } = parseWith(boardParamsSchema, req.params);
+    res.json(await getBoardDetail(db, id));
+  });
+
+  router.patch("/:id", async (req, res) => {
+    const { db } = getAuth(req);
+    const { id } = parseWith(boardParamsSchema, req.params);
+    const input = parseWith(updateBoardSchema, req.body);
+    res.json(await updateBoard(db, id, input));
+  });
+
+  router.delete("/:id", async (req, res) => {
+    const { db } = getAuth(req);
+    const { id } = parseWith(boardParamsSchema, req.params);
+    await deleteBoard(db, id);
+    res.status(204).end();
+  });
+
+  return router;
+}
